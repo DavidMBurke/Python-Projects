@@ -30,10 +30,10 @@ def draw_angled_poly(pos, color, angle, size):
     poly = [(x,y+1),(x+1,y+1),(x+2,y+2),(x+3,y+1),(x+4,y+2),(x+3,y+3),(x+2,y+2),(x+1,y+3),(x,y+3)]
     rotation_axis = (pos[0] + 2, pos[1] + 2)
     poly = rotate_polygon(poly, rotation_axis, angle)
+    poly_new = []
     for p in poly:
-        p = (p[0] + size * .5, p[1] + size * .5)
-    #ant = ((6,0),(7,1),(7,3),(6,4),(5,5),(6,6),(5,7),(7,8),(7,9),(5,10),(3,9),(3,8),(4,6),(4,4),(3,3),(3,1),(4,0))
-    pygame.draw.polygon(screen, color, poly)
+        poly_new.append((p[0] + size * .5, p[1] + size * .5))
+    pygame.draw.polygon(screen, color, poly_new)
 
 # intersection check logic borrowed from https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
 def inRect(p, q, r):
@@ -87,7 +87,8 @@ class ant:
         self.speed = speed
         self.size = size
     def look(self):
-        viewpoint = (self.pos[0] + self.size * .5 + 2*math.cos(self.angle), self.pos[1] + self.size * .5 + 2*math.sin(self.angle))
+        center = (self.pos[0] + .5 * self.size, self.pos[1] + .5 * self.size)
+        viewpoint = (center[0] + self.size * .5 + 2*math.cos(self.angle), center[1] + self.size * .5 + 2*math.sin(self.angle))
         for i in range(-45, 45, 9):
             endpoint = (viewpoint[0] + 30*math.cos(self.angle + math.pi * (1/180) * i), viewpoint[1] + 30*math.sin(self.angle + math.pi * (1/180) * i))
             pygame.draw.line(surface, (255, 255, 255, 50), viewpoint, endpoint, 1)
