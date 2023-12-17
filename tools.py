@@ -25,15 +25,14 @@ def draw_angled_poly(screen, poly, pos, color, angle, size):
 
     # intersection check logic borrowed from https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
 def inRect(p, q, r):
-    if q[0] <= max(p[0], r[0]) and q[0] >= min(p[0], r[0]) and q[1] <= max(p[1],r[1]) and q[1] >= min(p[1],r[1]):
-        return True
+    if min(p[0], r[0]) <= q[0] <= max(p[0], r[0]) and min(p[1], r[1]) <= q[1] <= max(p[1], r[1]):        return True
     return False
 
 def orientation(p, q, r):
     # collinear: 0, cw: 1, ccw: 2
     val = (q[1]-p[1]) * (r[0]-q[0]) - (q[0]-p[0]) * (r[1]-q[1])
-    if val > 0: return 1
-    if val < 0: return 2
+    if val > .0001: return 1
+    if val < .0001: return 2
     return 0
 
 def check_line_intersection(p1, q1, p2, q2):

@@ -1,18 +1,23 @@
 import pygame, math, random, time, tools
 
-WINDOW = (1200, 800)
+WINDOW = (1200, 750)
 
 pygame.init()
 
 screen = pygame.display.set_mode(WINDOW)
 surface = pygame.Surface((WINDOW), pygame.SRCALPHA)
-font = pygame.font.Font(None, 12)
+font = pygame.font.Font(None, 20)
 
 run = True
 fps = 0
 
 prev_time = time.time()
 delta_time = time.time()
+
+#Debuggers
+debug_collisions = False
+debug_ant_sight = True
+show_fps = True
 
 class wall:
     def __init__(self, pos, size):
@@ -38,9 +43,10 @@ class ant:
     def look(self):
         center = (self.pos[0] + .5 * self.size, self.pos[1] + .5 * self.size)
         viewpoint = (center[0] + self.size * .5 + 2*math.cos(self.angle), center[1] + self.size * .5 + 2*math.sin(self.angle))
-        #for i in range(-45, 45, 9):
-            #endpoint = (viewpoint[0] + 30*math.cos(self.angle + math.pi * (1/180) * i), viewpoint[1] + 30*math.sin(self.angle + math.pi * (1/180) * i))
-            #pygame.draw.line(surface, (255, 255, 255, 50), viewpoint, endpoint, 1)
+        if debug_ant_sight:
+            for i in range(-50, 51, 25):
+                endpoint = (viewpoint[0] + 30*math.cos(self.angle + math.pi * (1/180) * i), viewpoint[1] + 30*math.sin(self.angle + math.pi * (1/180) * i))
+                pygame.draw.line(surface, (255, 255, 255, 50), viewpoint, endpoint, 1)
     def explore(self):
         self.angle = self.angle + (random.random() * 2 - 1) * delta_time * speed * .5
         x_movement = math.cos(self.angle) * delta_time * speed
@@ -60,13 +66,18 @@ class ant:
             for p in [(p1,p2), (p2,p3), (p3,p4), (p4,p1)]:
                 if tools.check_line_intersection(bound, (new_x, bound[1]), p[0], p[1]):
                     new_x = self.pos[0]
+                    if debug_collisions:
+                        pygame.draw.line(screen, (255,0,255), bound, (new_x + 100*x_movement, new_y + 100*y_movement), 1)
                 if tools.check_line_intersection(bound, (bound[0], new_y), p[0], p[1]):
                     new_y = self.pos[1]
+                    if debug_collisions:
+                        pygame.draw.line(screen, (255,0,255), bound, (new_x + 100*x_movement, new_y + 100*y_movement), 1)
+
         self.pos = (new_x, new_y)
 
 ants = []
 
-for i in range (25):
+for i in range (500):
     pos = (600, 400)
     color = (random.randint(50, 205), random.randint(50, 205), random.randint(50, 205))
     angle = (random.random() * math.pi * 2)
@@ -74,13 +85,33 @@ for i in range (25):
     size = 4
     ants.append(ant(pos, color, angle, 20, 4))
 
+print(tools.check_line_intersection((0, 0), (20, 20), (10, 10), (30, 30))) # True
+print(tools.check_line_intersection((0, 0), (10, 10), (10, 10), (20, 20))) # True
+
+
+# print(tools.check_line_intersection((0, 0), (20, 20), (10, 10), (30, 30))) # True
+# print(tools.check_line_intersection((0, 0), (20, 20), (10, 10), (10, 0))) # True
+# print(tools.check_line_intersection((0, 0), (20, 20), (0, 1), (20, 21))) # False
+# print(tools.check_line_intersection((0, 0), (10, 10), (10, 10), (20, 20))) # True
+# print(tools.check_line_intersection((0, 0), (10, 10), (10, 10), (20, 0))) # True
+# print(tools.check_line_intersection((0, 0), (10, 10), (12, 12), (20, 20))) # False
+# print(tools.check_line_intersection((0, 0), (10, 10), (20, 20), (30, 30))) # False
+# print(tools.check_line_intersection((0, 10), (20, 10), (10, 0), (10, 20))) # True
+# print(tools.check_line_intersection((0, 0), (10, 10), (10, 10), (20, 10))) # True
+# print(tools.check_line_intersection((0, 0), (20, 20), (0, 20), (20, 0))) # True
+
+
+
 while run:
-    delta_time = time.time() - prev_time
-    if delta_time != 0:
-        fps = 1 / delta_time
-    prev_time = time.time()
     screen.fill((0, 0, 0))
     surface.fill((0,0,0,0))
+    delta_time = time.time() - prev_time
+    if (show_fps):
+        if delta_time != 0:
+            fps = 1 / delta_time
+        text_surface = font.render(str(fps), True, (155,155,155))
+        screen.blit(text_surface, (15,15))
+    prev_time = time.time()
 
     for a in ants:
         a.explore()
@@ -90,8 +121,7 @@ while run:
     for w in walls:
         pygame.draw.rect(surface, (155,155,155,100), (w.pos, w.size))
 
-    text_surface = font.render(str(fps), True, (155,155,155))
-    screen.blit(text_surface, (15,15))
+
     screen.blit(surface, (0,0))
     pygame.display.update()
 
