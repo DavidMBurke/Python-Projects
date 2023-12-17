@@ -35,7 +35,7 @@ def orientation(p, q, r):
     if val < .0001: return 2
     return 0
 
-def check_line_intersection(p1, q1, p2, q2):
+def line_line_intersection(p1, q1, p2, q2):
     if min(p1[0],q1[0]) > max(p2[0],q2[0]) or max(p1[0],q1[0]) < min(p2[0],q2[0]):
         return False
     if min(p1[1],q1[1]) > max(p2[1],q2[1]) or max(p1[1],q1[1]) < min(p2[1],q2[1]):
