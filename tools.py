@@ -1,4 +1,4 @@
-import math, pygame
+import math, pygame, numpy
 
 def rotate_polygon(polygon, axis, angle):
     s = math.sin(angle)
@@ -14,7 +14,7 @@ def rotate_polygon(polygon, axis, angle):
         rotated_poly.append((x_f, y_f))
     return rotated_poly
 
-def draw_angled_poly(screen, poly, pos, color, angle, size):
+def draw_angled_poly(screen, poly, pos, color, angle):
     x, y = (pos[0], pos[1])
     poly_offset = []
     for p in poly:
@@ -24,15 +24,16 @@ def draw_angled_poly(screen, poly, pos, color, angle, size):
     pygame.draw.polygon(screen, color, poly)
 
     # intersection check logic borrowed from https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
-def inRect(p, q, r):
-    if min(p[0], r[0]) <= q[0] <= max(p[0], r[0]) and min(p[1], r[1]) <= q[1] <= max(p[1], r[1]):        return True
+def on_segment(p, q, r):
+    if min(p[0], r[0]) <= q[0] <= max(p[0], r[0]) and min(p[1], r[1]) <= q[1] <= max(p[1], r[1]):
+        return True
     return False
 
 def orientation(p, q, r):
     # collinear: 0, cw: 1, ccw: 2
     val = (q[1]-p[1]) * (r[0]-q[0]) - (q[0]-p[0]) * (r[1]-q[1])
-    if val > .0001: return 1
-    if val < .0001: return 2
+    if val > 0: return 1
+    if val < 0: return 2
     return 0
 
 def line_line_intersection(p1, q1, p2, q2):
@@ -47,17 +48,46 @@ def line_line_intersection(p1, q1, p2, q2):
 
     if o1 != o2 and o3 != o4:
         return True
-    if o1 == 0 and inRect(p1, p2, q1):
+    if o1 == 0 and on_segment(p1, q1, p2):
         return True
-    if o2 == 0 and inRect(p1, q2, q1):
+    if o2 == 0 and on_segment(p1, q1, q2):
         return True
-    if o3 == 0 and inRect(p2, p1, q2):
+    if o3 == 0 and on_segment(p2, q2, p1):
         return True
-    if o4 == 0 and inRect(p2, q1, q2):
+    if o4 == 0 and on_segment(p2, q2, q2):
         return True
     return False
+
+def triangle_area(a, b, c):
+    ab = (b[0] - a[0], b[1] - a[1])
+    ac = (c[0] - a[0], c[1] - a[1])
+    area = abs(ab[0] * ac[1] - ab[1] * ac[0]) * .5
+    return area
+
+def distance(p1, p2):
+    return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
+
+
+def line_circle_intersection(r, o, p, q):
+
+    if distance(p, o) <= r or distance(q, o) <= r:
+        return True
+
+    line_length = distance(p, q)
+    dx = (q[0] - p[0]) / line_length
+    dy = (q[1] - p[1]) / line_length
+
+    t = dx * (o[0] - p[0]) + dy * (o[1] - p[1])
+
+    closest_point = (p[0] + t * dx, p[1] + t * dy)
+
+    if t < 0 or t > line_length:
+        return False
+
+    return distance(closest_point, o) <= r
 
 def sign(n):
     if n > 0 : return 1
     if n < 0 : return -1
     return 0
+

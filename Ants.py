@@ -19,8 +19,14 @@ dt = time.time()
 #Debuggers
 debug_collisions = False
 debug_ant_sight = False
+debug_pheromones = True
+debug_wall_outlines = False
 show_fps = True
-transparent_walls = False
+transparent_walls = True
+
+class grid_cell:
+    def __init__(self, pos):
+        self.pos = pos
 
 class wall:
     def __init__(self, pos, size):
@@ -44,11 +50,15 @@ class pheromone:
         self.size = size
     def update(self, dt):
         self.strength -= .1 * dt
-        self.size += .2 * dt
-        self.color = (self.color[0], self.color[1], self.color[2], 255 * self.strength if self.strength > 0 else 0)
-        pygame.draw.circle(surface, self.color, self.pos, self.size)
+        self.color = (self.color[0], self.color[1], self.color[2], 150 * self.strength if self.strength > 0 else 0)
+        self.draw(self.color, self.pos, self.size)
         if self.strength < 0:
             pheromones.remove(self)
+    def draw(self, color, pos, size):
+        if not debug_pheromones:
+            return
+        pygame.draw.circle(surface, color, pos, size)
+        
             
 
 pheromones = []
@@ -61,17 +71,41 @@ class ant:
         self.speed = speed
         self.size = size
         self.poly = [(0,1),(1,1),(2,2),(3,1),(4,2),(3,3),(2,2),(1,3),(0,3)]
-        self.pheromone_clock = random.random() * .5
-        self.pheromone_reset = .5
+        self.pheromone_clock = random.random() * 1
+        self.pheromone_reset = 1
+        self.found_pheromones = (0, 0, 0, 0, 0) #each of the 5 raycasts
     def look(self):
         center = (self.pos[0] + .5 * self.size, self.pos[1] + .5 * self.size)
         viewpoint = (center[0] + self.size * .5 + 2*math.cos(self.angle), center[1] + self.size * .5 + 2*math.sin(self.angle))
-        if debug_ant_sight:
-            for i in range(-50, 51, 25):
-                endpoint = (viewpoint[0] + 30*math.cos(self.angle + math.pi * (1/180) * i), viewpoint[1] + 30*math.sin(self.angle + math.pi * (1/180) * i))
+        self.found_pheromones = [0,0,0,0,0]
+        m = 0
+        for i in range(-50, 51, 25):
+            endpoint = (viewpoint[0] + 30*math.cos(self.angle + math.pi * (1/180) * i), viewpoint[1] + 30*math.sin(self.angle + math.pi * (1/180) * i))
+            for p in pheromones:
+                if (tools.line_circle_intersection(p.size, p.pos, viewpoint, endpoint)):
+                    self.found_pheromones[m] += p.strength
+            if debug_ant_sight:
                 pygame.draw.line(surface, (255, 255, 255, 50), viewpoint, endpoint, 1)
+            m += 1
     def explore(self):
-        self.angle = self.angle + (random.random() * 2 - 1) * dt * speed * .5
+        max_pheromones = 0
+        max_index = -1
+        for i in range(self.found_pheromones.__len__()):
+            if self.found_pheromones[i] > max_pheromones:
+                max_pheromones = self.found_pheromones[i]
+                max_index = i
+        match max_index:
+            case 0:
+                self.angle = self.angle - dt * speed * .5
+            case 1:
+                self.angle = self.angle - dt * speed * .25
+            case 2:
+                pass
+            case 3:
+                self.angle = self.angle + dt * speed * .25
+            case 4:
+                self.angle = self.angle + dt * speed * .5
+        self.angle = self.angle + (random.random() * 2 - 1) * dt * speed * .25
         x_movement = math.cos(self.angle) * dt * speed
         y_movement = math.sin(self.angle) * dt * speed
         new_x = self.pos[0] + x_movement
@@ -101,35 +135,18 @@ class ant:
         self.pheromone_clock -= dt
         if self.pheromone_clock < 0:
             self.pheromone_clock = self.pheromone_reset
-            pheromones.append(pheromone(self.pos, 1, (0,0,255, 255), 1, 1.0))
+            pheromones.append(pheromone(self.pos, 1, (0,0,255,200), 1, 2))
 
 
 ants = []
 
-for i in range (500):
+for i in range (30):
     pos = (600, 400)
     color = (random.randint(50, 205), random.randint(50, 205), random.randint(50, 205))
     angle = (random.random() * math.pi * 2)
     speed = 50
     size = 4
     ants.append(ant(pos, color, angle, 20, 4))
-
-print(tools.line_line_intersection((0, 0), (20, 20), (10, 10), (30, 30))) # True
-print(tools.line_line_intersection((0, 0), (10, 10), (10, 10), (20, 20))) # True
-
-
-# print(tools.check_line_intersection((0, 0), (20, 20), (10, 10), (30, 30))) # True
-# print(tools.check_line_intersection((0, 0), (20, 20), (10, 10), (10, 0))) # True
-# print(tools.check_line_intersection((0, 0), (20, 20), (0, 1), (20, 21))) # False
-# print(tools.check_line_intersection((0, 0), (10, 10), (10, 10), (20, 20))) # True
-# print(tools.check_line_intersection((0, 0), (10, 10), (10, 10), (20, 0))) # True
-# print(tools.check_line_intersection((0, 0), (10, 10), (12, 12), (20, 20))) # False
-# print(tools.check_line_intersection((0, 0), (10, 10), (20, 20), (30, 30))) # False
-# print(tools.check_line_intersection((0, 10), (20, 10), (10, 0), (10, 20))) # True
-# print(tools.check_line_intersection((0, 0), (10, 10), (10, 10), (20, 10))) # True
-# print(tools.check_line_intersection((0, 0), (20, 20), (0, 20), (20, 0))) # True
-
-
 
 while run:
     screen.fill((0, 0, 0))
@@ -142,18 +159,26 @@ while run:
         screen.blit(text_surface, (15,15))
     prev_time = time.time()
 
-    for a in ants:
-        a.explore()
-        a.look()
-        a.pheromones(dt)
-        tools.draw_angled_poly(screen, a.poly, a.pos, a.color, a.angle, 4)
-
     for p in pheromones:
         p.update(dt)
 
-    for w in walls:
-        pygame.draw.rect(surface, (155,155,155,100 if transparent_walls else 255), (w.pos, w.size))
+    for a in ants:
+        a.look()
+        a.explore()
+        a.pheromones(dt)
+        ()
+        tools.draw_angled_poly(screen, a.poly, a.pos, a.color, a.angle)
 
+    for w in walls:
+        if (debug_wall_outlines):
+            p1 = w.pos
+            p2 = (w.pos[0] + w.size[0], w.pos[1])
+            p3 = (w.pos[0] + w.size[0], w.pos[1] + w.size[1])
+            p4 = (w.pos[0], w.pos[1] + w.size[1])
+            for p in [(p1, p2), (p2, p3), (p3, p4), (p4, p1)]:
+                pygame.draw.line(surface, (200, 0, 0), p[0], p[1])
+        else:
+            pygame.draw.rect(surface, (155,155,155,100 if transparent_walls else 255), (w.pos, w.size))
 
     screen.blit(surface, (0,0))
     pygame.display.update()
