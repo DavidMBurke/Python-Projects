@@ -10,23 +10,38 @@ screen = pygame.display.set_mode(WINDOW)
 surface = pygame.Surface((WINDOW), pygame.SRCALPHA)
 font = pygame.font.Font(None, 20)
 
+
 run = True
 fps = 0
+grid_cell_size = 25
+x_grid = int(WINDOW[0] / grid_cell_size)
+y_grid = int(WINDOW[1] / grid_cell_size)
 
 prev_time = time.time()
 dt = time.time()
 
 #Debuggers
 debug_collisions = False
-debug_ant_sight = False
+debug_ant_sight = True
 debug_pheromones = True
 debug_wall_outlines = False
 show_fps = True
 transparent_walls = True
+debug_grid = True
 
 class grid_cell:
-    def __init__(self, pos):
+    def __init__(self, pos, size, index):
         self.pos = pos
+        self.size = size
+        self.index = index
+        self.pings = 0
+
+grid_cells = []
+for i in range(x_grid):
+    row = []
+    for j in range(y_grid):
+        row.append(grid_cell((i*grid_cell_size, j*grid_cell_size), grid_cell_size, (i, j)))
+    grid_cells.append(row)
 
 class wall:
     def __init__(self, pos, size):
@@ -48,6 +63,7 @@ class pheromone:
         self.color = color
         self.strength = strength
         self.size = size
+        self.index = (math.floor(self.pos[0] / grid_cell_size), math.floor(self.pos[1] / grid_cell_size))
     def update(self, dt):
         self.strength -= .1 * dt
         self.color = (self.color[0], self.color[1], self.color[2], 150 * self.strength if self.strength > 0 else 0)
@@ -73,15 +89,33 @@ class ant:
         self.poly = [(0,1),(1,1),(2,2),(3,1),(4,2),(3,3),(2,2),(1,3),(0,3)]
         self.pheromone_clock = random.random() * 1
         self.pheromone_reset = 1
-        self.found_pheromones = (0, 0, 0, 0, 0) #each of the 5 raycasts
+        self.found_pheromones = (0, 0, 0) #each of the 5 raycasts
     def look(self):
         center = (self.pos[0] + .5 * self.size, self.pos[1] + .5 * self.size)
         viewpoint = (center[0] + self.size * .5 + 2*math.cos(self.angle), center[1] + self.size * .5 + 2*math.sin(self.angle))
-        self.found_pheromones = [0,0,0,0,0]
+        self.found_pheromones = [0,0,0]
         m = 0
-        for i in range(-50, 51, 25):
+        for i in range(-30, 31, 30):
             endpoint = (viewpoint[0] + 30*math.cos(self.angle + math.pi * (1/180) * i), viewpoint[1] + 30*math.sin(self.angle + math.pi * (1/180) * i))
+            pos_index = (int(self.pos[0] / grid_cell_size), int(self.pos[1] / grid_cell_size))
+            
             for p in pheromones:
+                x_dir = tools.sign(math.cos(self.angle))
+                y_dir = tools.sign(math.sin(self.angle))
+                p1 = p.index
+                p2 = (p.index[0] + x_dir, p.index[1] + y_dir)
+                if (p1 != pos_index) and (p1 != (p2[0], p1[1])) and (p1 != (p1[0], p2[1])) and (p1 != (p2[0], p2[1])):
+                    continue
+                if (debug_grid):
+                    if p1[0] > 0 and p1[0] < x_grid and p1[1] > 0 and p1[1] < y_grid:
+                        if (p.index == pos_index): grid_cells[p1[0]][p1[1]].pings += 1
+                    if p2[0] > 0 and p2[0] < x_grid and p1[1] > 0 and p1[1] < y_grid:
+                        if (p.index == p2[0], p1[1]): grid_cells[p2[0]][p1[1]].pings += 1
+                    if p1[0] > 0 and p1[0] < x_grid and p2[1] > 0 and p2[1] < y_grid:
+                        if (p.index == p1[0], p2[1]): grid_cells[p1[0]][p2[1]].pings += 1
+                    if p2[0] > 0 and p2[0] < x_grid and p2[1] > 0 and p2[1] < y_grid:
+                        if (p.index == p2[0], p2[1]): grid_cells[p2[0]][p2[1]].pings += 1
+
                 if (tools.line_circle_intersection(p.size, p.pos, viewpoint, endpoint)):
                     self.found_pheromones[m] += p.strength
             if debug_ant_sight:
@@ -98,12 +132,8 @@ class ant:
             case 0:
                 self.angle = self.angle - dt * speed * .5
             case 1:
-                self.angle = self.angle - dt * speed * .25
-            case 2:
                 pass
-            case 3:
-                self.angle = self.angle + dt * speed * .25
-            case 4:
+            case 2:
                 self.angle = self.angle + dt * speed * .5
         self.angle = self.angle + (random.random() * 2 - 1) * dt * speed * .25
         x_movement = math.cos(self.angle) * dt * speed
@@ -137,10 +167,9 @@ class ant:
             self.pheromone_clock = self.pheromone_reset
             pheromones.append(pheromone(self.pos, 1, (0,0,255,200), 1, 2))
 
-
 ants = []
 
-for i in range (30):
+for i in range (60):
     pos = (600, 400)
     color = (random.randint(50, 205), random.randint(50, 205), random.randint(50, 205))
     angle = (random.random() * math.pi * 2)
@@ -166,7 +195,6 @@ while run:
         a.look()
         a.explore()
         a.pheromones(dt)
-        ()
         tools.draw_angled_poly(screen, a.poly, a.pos, a.color, a.angle)
 
     for w in walls:
@@ -179,6 +207,19 @@ while run:
                 pygame.draw.line(surface, (200, 0, 0), p[0], p[1])
         else:
             pygame.draw.rect(surface, (155,155,155,100 if transparent_walls else 255), (w.pos, w.size))
+
+    if (debug_grid):
+        for gc_row in grid_cells:
+            for gc in gc_row:
+                blue = 0 if gc.pings == 0 else 255
+                p1 = gc.pos
+                p2 = (gc.pos[0] + gc.size - 1, gc.pos[1] + gc.size - 1)
+                pygame.draw.line(surface, (0, 0, blue, 100), p1, (p2[0], p1[1]))
+                pygame.draw.line(surface, (0, 0, blue, 100), p1, (p1[0], p2[1]))
+                pygame.draw.line(surface, (0, 0, blue, 100), (p1[0], p2[1]), (p2[0], p2[1]))
+                pygame.draw.line(surface, (0, 0, blue, 100), (p2[0], p1[1]), (p2[0], p2[1]))
+
+                gc.pings = 0
 
     screen.blit(surface, (0,0))
     pygame.display.update()
