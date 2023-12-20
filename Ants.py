@@ -27,7 +27,7 @@ debug_pheromones = True
 debug_wall_outlines = False
 show_fps = True
 transparent_walls = True
-debug_grid = True
+debug_grid = False
 
 class grid_cell:
     def __init__(self, pos, size, index):
@@ -65,7 +65,7 @@ class pheromone:
         self.size = size
         self.index = (math.floor(self.pos[0] / grid_cell_size), math.floor(self.pos[1] / grid_cell_size))
     def update(self, dt):
-        self.strength -= .1 * dt
+        self.strength -= .05 * dt
         self.color = (self.color[0], self.color[1], self.color[2], 150 * self.strength if self.strength > 0 else 0)
         self.draw(self.color, self.pos, self.size)
         if self.strength < 0:
@@ -75,7 +75,17 @@ class pheromone:
             return
         pygame.draw.circle(surface, color, pos, size)
         
-            
+class food:
+    def __init__(self, pos):
+        self.pos = pos
+        self.index = (math.floor(self.pos[0] / grid_cell_size), math.floor(self.pos[1] / grid_cell_size))
+        self.color = (0, 255, 0)
+        self.size = 1
+
+foods = []
+
+for i in range(100,400,4):
+    foods.append(food((i,i)))
 
 pheromones = []
 
@@ -87,21 +97,37 @@ class ant:
         self.speed = speed
         self.size = size
         self.poly = [(0,1),(1,1),(2,2),(3,1),(4,2),(3,3),(2,2),(1,3),(0,3)]
-        self.pheromone_clock = random.random() * 1
-        self.pheromone_reset = 1
-        self.found_pheromones = (0, 0, 0) #each of the 5 raycasts
+        self.pheromone_clock = random.random() * .5
+        self.pheromone_reset = .5
+        self.found_pheromones = [0, 0, 0] #each of the 5 raycasts
+        self.has_food = False
     def look(self):
         center = (self.pos[0] + .5 * self.size, self.pos[1] + .5 * self.size)
         viewpoint = (center[0] + self.size * .5 + 2*math.cos(self.angle), center[1] + self.size * .5 + 2*math.sin(self.angle))
         self.found_pheromones = [0,0,0]
+        self.found_food = [0,0,0]
         m = 0
         for i in range(-30, 31, 30):
             endpoint = (viewpoint[0] + 30*math.cos(self.angle + math.pi * (1/180) * i), viewpoint[1] + 30*math.sin(self.angle + math.pi * (1/180) * i))
             pos_index = (int(self.pos[0] / grid_cell_size), int(self.pos[1] / grid_cell_size))
+
+            x_dir = tools.sign(math.cos(self.angle))
+            y_dir = tools.sign(math.sin(self.angle))
             
+            
+            for f in foods:
+                p1 = f.index
+                p2 = (f.index[0] + x_dir, f.index[1] + y_dir)
+                if (p1 != pos_index) and (p1 != (p2[0], p1[1])) and (p1 != (p1[0], p2[1])) and (p1 != (p2[0], p2[1])):
+                    continue
+                if (tools.line_circle_intersection(f.size, f.pos, viewpoint, endpoint)):
+                    self.found_food[m] += 1
+
             for p in pheromones:
-                x_dir = tools.sign(math.cos(self.angle))
-                y_dir = tools.sign(math.sin(self.angle))
+                if self.has_food and p.type == 2:
+                    continue
+                if not self.has_food and p.type == 1:
+                    continue
                 p1 = p.index
                 p2 = (p.index[0] + x_dir, p.index[1] + y_dir)
                 if (p1 != pos_index) and (p1 != (p2[0], p1[1])) and (p1 != (p1[0], p2[1])) and (p1 != (p2[0], p2[1])):
@@ -117,25 +143,46 @@ class ant:
                         if (p.index == p2[0], p2[1]): grid_cells[p2[0]][p2[1]].pings += 1
 
                 if (tools.line_circle_intersection(p.size, p.pos, viewpoint, endpoint)):
-                    self.found_pheromones[m] += p.strength
+                    self.found_pheromones[m] += 1
             if debug_ant_sight:
                 pygame.draw.line(surface, (255, 255, 255, 50), viewpoint, endpoint, 1)
             m += 1
     def explore(self):
         max_pheromones = 0
-        max_index = -1
-        for i in range(self.found_pheromones.__len__()):
-            if self.found_pheromones[i] > max_pheromones:
-                max_pheromones = self.found_pheromones[i]
-                max_index = i
-        match max_index:
-            case 0:
-                self.angle = self.angle - dt * speed * .5
-            case 1:
-                pass
-            case 2:
-                self.angle = self.angle + dt * speed * .5
-        self.angle = self.angle + (random.random() * 2 - 1) * dt * speed * .25
+        max_food = 0
+        pheromone_index = -1
+        food_index = -1
+
+        if self.has_food:
+            for i in range(self.found_pheromones.__len__()):
+                if self.found_pheromones[i] > max_pheromones:
+                    max_pheromones = self.found_pheromones[i]
+                    pheromone_index = i
+            match pheromone_index:
+                case 0:
+                    self.angle = self.angle - dt * speed * .5
+                case 1:
+                    pass
+                case 2:
+                    self.angle = self.angle + dt * speed * .5
+                case _:
+                    self.angle = self.angle + (random.random() * 2 - 1) * dt * speed * .5
+
+        elif any(f > 0 for f in self.found_food):
+            self.has_food = True #PLACEHOLDER, REMOVE ONCE CAN PICKUP FOOD
+            for i in range(self.found_pheromones.__len__()):
+                if self.found_food[i] > max_food:
+                    max_food = self.found_food[i]
+                    food_index = i
+            match food_index:
+                case 0:
+                    self.angle = self.angle - dt * speed * .5
+                case 1:
+                    pass
+                case 2:
+                    self.angle = self.angle + dt * speed * .5
+        else: 
+            self.angle = self.angle + (random.random() * 2 - 1) * dt * speed * .1
         x_movement = math.cos(self.angle) * dt * speed
         y_movement = math.sin(self.angle) * dt * speed
         new_x = self.pos[0] + x_movement
@@ -165,11 +212,14 @@ class ant:
         self.pheromone_clock -= dt
         if self.pheromone_clock < 0:
             self.pheromone_clock = self.pheromone_reset
-            pheromones.append(pheromone(self.pos, 1, (0,0,255,200), 1, 2))
+            if self.has_food:
+                pheromones.append(pheromone(self.pos, 2, (255,0,0,200), 1, 2))
+            else:
+                pheromones.append(pheromone(self.pos, 1, (0,0,255,200), 1, 2))
 
 ants = []
 
-for i in range (60):
+for i in range (100):
     pos = (600, 400)
     color = (random.randint(50, 205), random.randint(50, 205), random.randint(50, 205))
     angle = (random.random() * math.pi * 2)
@@ -190,6 +240,9 @@ while run:
 
     for p in pheromones:
         p.update(dt)
+
+    for f in foods:
+        pygame.draw.circle(surface, f.color, f.pos, f.size)
 
     for a in ants:
         a.look()
