@@ -6,6 +6,10 @@ SCREEN_WIDTH = 500
 SCREEN_HEIGHT = 500
 SQUARE_SIZE = 5
 PARTICLE_DISTRIBUTION = 3
+DENSITY_CORRECTION = 4 #How rapidly particles move from high to low density
+SURROUNDING_FLOW_FACTOR = 3 # How much weight surrounding flow has vs. current flow of a square
+CURRENT_FLOW_FACTOR = 5
+FLOW_NORMALIZE_FACTOR = 1 / (SURROUNDING_FLOW_FACTOR + CURRENT_FLOW_FACTOR)
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 particle_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
 prev_time = time.time()
@@ -21,6 +25,7 @@ font = pygame.font.Font(None, 20)
 show_fps = True
 refresh_each_frame = True
 pump_speed = 0
+gravity_mode = False #Has no value to simulation, just a cool bug I found
 
 square_dtype = np.dtype([
     ('place', int, (2,)),
@@ -106,9 +111,12 @@ def update_squares():
         density_gradient_x += di * density_diff
         density_gradient_y += dj * density_diff
 
+    flow_x_sum /= 4
+    flow_y_sum /= 4
+
     #average the flow at a 6/4 ratio of current and surrounding ave
-    next_flow_x = (flow_x_sum + squares['flow'][:,:,0] * 6 + density_gradient_x * delta_time) * 0.1
-    next_flow_y = (flow_y_sum + squares['flow'][:,:,1] * 6 + density_gradient_y * delta_time) * 0.1
+    next_flow_x = (flow_x_sum * SURROUNDING_FLOW_FACTOR + squares['flow'][:,:,0] * CURRENT_FLOW_FACTOR + density_gradient_x * DENSITY_CORRECTION * delta_time * (-1 if gravity_mode else 1)) * FLOW_NORMALIZE_FACTOR
+    next_flow_y = (flow_y_sum * SURROUNDING_FLOW_FACTOR + squares['flow'][:,:,1] * CURRENT_FLOW_FACTOR + density_gradient_y * DENSITY_CORRECTION * delta_time * (-1 if gravity_mode else 1)) * FLOW_NORMALIZE_FACTOR
 
     #update flow
     squares['flow'] = np.stack((next_flow_x, next_flow_y), axis = -1)
@@ -120,7 +128,6 @@ def update_particles():
 
     #Wrap boundaries
     positions = particles['position'] 
-    densities = squares['density']
     positions %= [SQUARE_SIZE * ROWS, SQUARE_SIZE * COLS]
 
     #Find grid indices for flow lookup
@@ -171,6 +178,8 @@ while run:
                     refresh_each_frame = not refresh_each_frame
                 case pygame.K_t:
                     reset_colors()
+                case pygame.K_g:
+                    gravity_mode = not gravity_mode
                 case pygame.K_0:
                     pump_speed = 0
                 case pygame.K_1:
