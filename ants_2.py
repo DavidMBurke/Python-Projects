@@ -1,7 +1,7 @@
 import pygame, math, numpy as np, time, random
 
 
-WINDOW = (1200, 800)
+WINDOW = (600, 600)
 
 #Display surfaces
 SCREEN = pygame.display.set_mode(WINDOW)
@@ -10,15 +10,15 @@ WALL_SURFACE = pygame.Surface((WINDOW), pygame.SRCALPHA)
 PHEROMONE_SURFACE = pygame.Surface((WINDOW), pygame.SRCALPHA)
 ANT_SURFACE = pygame.Surface((WINDOW), pygame.SRCALPHA)
 
-CELL_SIZE = 5
+CELL_SIZE = 2
 CELL_ROWS = WINDOW[1] // CELL_SIZE
 CELL_COLS = WINDOW[0] // CELL_SIZE
-NUM_ANTS = 1000
+NUM_ANTS = 5000
 PHEROMONE_TIME = 0.5
 ANT_SPEED = 20
 PHEROMONE_UPDATE_SPEED = .1 #time in seconds to decrease pheromones on a square
 PHEROMONE_DECREASE_AMOUNT = 1 #amount of decrease per update
-PHEROMONE_STRENGTH = 10
+PHEROMONE_STRENGTH = 25
 
 pheromone_timer = PHEROMONE_UPDATE_SPEED # time until pheromone disappates by 1
 prev_time = time.time()
@@ -27,7 +27,7 @@ pygame.init()
 
 #Debug Settings
 debug_show_grid = False # g key
-timed_run = True # For profiling
+timed_run = False # For profiling
 timed_run_timer = 30.0 # For profiling
 
 grid_cell_dtype = np.dtype([
@@ -76,7 +76,7 @@ ant_dtype = np.dtype([
 #Initialize ants
 ants = np.zeros(NUM_ANTS, dtype = ant_dtype)
 for i in range(NUM_ANTS):
-    pos = (600,400)
+    pos = (WINDOW[0] * .5, WINDOW[1] * .5)
     index = (pos[0] // CELL_SIZE, pos[1] // CELL_SIZE)
     direction = (random.random() * 2 * math.pi)
     ants[i] = (pos, index, direction)
@@ -87,8 +87,12 @@ def update_ant_pos(delta_time):
     x = np.cos(ants['direction']) * delta_time * ANT_SPEED
     y = np.sin(ants['direction']) * delta_time * ANT_SPEED
     movement = np.column_stack((x,y))
-    ants['pos'] += movement
-    ants['index'] = np.floor(ants['pos'] / CELL_SIZE).astype(int)
+    new_pos = ants['pos'] + movement
+    new_index = np.floor(new_pos / CELL_SIZE).astype(int)
+    can_move = np.array([grid_cells[x,y]['wall'] == False for x,y in new_index])
+    ants['pos'][can_move] = new_pos[can_move]
+    ants['index'][can_move] = new_index[can_move]
+    ants['direction'][~can_move] += rand_array[~can_move] * math.pi
 
 def ants_drop_pheromones():
     for i, j in ants['index']:
@@ -96,9 +100,16 @@ def ants_drop_pheromones():
     
 def update_pheromones():
     grid_cells['pheromones'] = np.clip(grid_cells['pheromones'] - PHEROMONE_DECREASE_AMOUNT, 0, 255)
-    for index, c in np.ndenumerate(grid_cells):
-        pygame.draw.rect(PHEROMONE_SURFACE, c['pheromones'], (c['pos'][0], c['pos'][1], CELL_SIZE, CELL_SIZE))
-
+    pixels = pygame.surfarray.pixels2d(PHEROMONE_SURFACE)
+    pixel_alphas = pygame.surfarray.pixels_alpha(PHEROMONE_SURFACE)
+    p = grid_cells['pheromones']
+    colors = (p[:,:,0] << 16) + (p[:,:,1] << 8) + (p[:,:,2])
+    colors = np.repeat(colors, CELL_SIZE, axis = 0) #Expand to size of window
+    colors = np.repeat(colors, CELL_SIZE, axis = 1)
+    pixels[:] = colors
+    pixel_alphas[colors != 0] = 255
+    del pixels
+    del pixel_alphas
 
 def draw_ants():
     global ants
@@ -144,8 +155,8 @@ while (run):
 
     if debug_show_grid:
         SCREEN.blit(GRID_SURFACE, (0,0))
-    SCREEN.blit(WALL_SURFACE, (0,0))
     SCREEN.blit(PHEROMONE_SURFACE, (0,0))
+    SCREEN.blit(WALL_SURFACE, (0,0))
     SCREEN.blit(ANT_SURFACE, (0,0))
 
     pygame.display.update()
