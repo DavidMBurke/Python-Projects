@@ -9,8 +9,9 @@ GRID_SURFACE = pygame.Surface((WINDOW), pygame.SRCALPHA)
 WALL_SURFACE = pygame.Surface((WINDOW), pygame.SRCALPHA)
 PHEROMONE_SURFACE = pygame.Surface((WINDOW), pygame.SRCALPHA)
 ANT_SURFACE = pygame.Surface((WINDOW), pygame.SRCALPHA)
+FOOD_SURFACE = pygame.Surface((WINDOW), pygame.SRCALPHA)
 
-CELL_SIZE = 2
+CELL_SIZE = 1
 CELL_ROWS = WINDOW[1] // CELL_SIZE
 CELL_COLS = WINDOW[0] // CELL_SIZE
 NUM_ANTS = 5000
@@ -18,7 +19,10 @@ PHEROMONE_TIME = 0.5
 ANT_SPEED = 20
 PHEROMONE_UPDATE_SPEED = .1 #time in seconds to decrease pheromones on a square
 PHEROMONE_DECREASE_AMOUNT = 1 #amount of decrease per update
-PHEROMONE_STRENGTH = 25
+PHEROMONE_STRENGTH = 50
+
+#setting
+slotted_box = True
 
 pheromone_timer = PHEROMONE_UPDATE_SPEED # time until pheromone disappates by 1
 prev_time = time.time()
@@ -56,21 +60,34 @@ for j in range (0, WINDOW[1], CELL_SIZE):
     pygame.draw.line(GRID_SURFACE, (100,100,100), (0, j), (CELL_COLS * CELL_SIZE, j))
 
 #Set walls
-grid_cells[:, 0]['wall'] = True
-grid_cells[:, CELL_ROWS-1]['wall'] = True
-grid_cells[0, :]['wall'] = True
-grid_cells[CELL_COLS - 1, :]['wall'] = True
+grid_cells[:, 0:2]['wall'] = True
+grid_cells[:, CELL_ROWS-2:CELL_ROWS]['wall'] = True
+grid_cells[0:2, :]['wall'] = True
+grid_cells[CELL_COLS - 2:CELL_COLS, :]['wall'] = True
+if (slotted_box):
+    half = (CELL_ROWS * .5, CELL_COLS * .5)
+    grid_cells[int(half[0] - 50) : int(half[0] - 5), int(half[1] - 50)]['wall'] = True
+    grid_cells[int(half[0] + 5) : int(half[0] + 50), int(half[1] - 50)]['wall'] = True
+    grid_cells[int(half[0] - 50) : int(half[0] - 5), int(half[1] + 50)]['wall'] = True
+    grid_cells[int(half[0] + 5) : int(half[0] + 50), int(half[1] + 50)]['wall'] = True
+    grid_cells[int(half[0] - 50), int(half[1] - 50) : int(half[1] - 5)]['wall'] = True
+    grid_cells[int(half[0] + 50), int(half[1] - 50) : int(half[1] - 5)]['wall'] = True
+    grid_cells[int(half[0] - 50), int(half[1] + 5) : int(half[1] + 50)]['wall'] = True
+    grid_cells[int(half[0] + 50), int(half[1] + 5) : int(half[1] + 50)]['wall'] = True
 
 #Draw walls
 for (x,y), cell in np.ndenumerate(grid_cells):
     if cell['wall']:
         pygame.draw.rect(WALL_SURFACE, (100, 100, 100), (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
+#Set food
+grid_cells[10: CELL_ROWS-10,7:12]['food'] = 10
 
 ant_dtype = np.dtype([
     ('pos', float, (2,)),
     ('index', int, (2,)),
-    ('direction', float)
+    ('direction', float),
+    ('food', float)
 ])
 
 #Initialize ants
@@ -79,7 +96,8 @@ for i in range(NUM_ANTS):
     pos = (WINDOW[0] * .5, WINDOW[1] * .5)
     index = (pos[0] // CELL_SIZE, pos[1] // CELL_SIZE)
     direction = (random.random() * 2 * math.pi)
-    ants[i] = (pos, index, direction)
+    food = 0
+    ants[i] = (pos, index, direction, food)
 
 def update_ant_pos(delta_time):
     rand_array = (np.random.rand(ants['direction'].shape[0]) * 2 - 1)
@@ -103,7 +121,9 @@ def update_pheromones():
     pixels = pygame.surfarray.pixels2d(PHEROMONE_SURFACE)
     pixel_alphas = pygame.surfarray.pixels_alpha(PHEROMONE_SURFACE)
     p = grid_cells['pheromones']
+    f = grid_cells['food']
     colors = (p[:,:,0] << 16) + (p[:,:,1] << 8) + (p[:,:,2])
+    colors[f > 0] = 16711935
     colors = np.repeat(colors, CELL_SIZE, axis = 0) #Expand to size of window
     colors = np.repeat(colors, CELL_SIZE, axis = 1)
     pixels[:] = colors
