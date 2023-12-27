@@ -4,6 +4,7 @@ dtype = np.dtype([
     ('index', int, (2,)),
     ('pos', int, (2,)),
     ('pheromones', int, (3,)), # also sets color. r, g, b = Return, Go (follow to food), Battle
+    ('p1_gradient', float),
     ('food', float),
     ('wall', bool)
 ])
@@ -20,6 +21,7 @@ def initialize(grid_cells):
             index = [i,j]
             pos = [i * settings.c_size, j * settings.c_size]
             pheromones = [0, 0, 0]
+            p1_gradient = 0
             food = 0
             is_wall = False
-            grid_cells[i, j] = (index, pos, pheromones, food, is_wall)
+            grid_cells[i, j] = (index, pos, pheromones, p1_gradient, food, is_wall)

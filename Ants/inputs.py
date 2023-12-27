@@ -1,4 +1,4 @@
-import pygame, settings
+import pygame, settings, shared
 
 # Show gridlines - g
 # Show pheromones - p
@@ -6,6 +6,8 @@ import pygame, settings
 
 def keypress(key):
     match key:
+        case pygame.K_f:
+            shared.ants['food'] = 100
         case pygame.K_g:
             settings.debug_show_grid = ~settings.debug_show_grid
         case pygame.K_p:

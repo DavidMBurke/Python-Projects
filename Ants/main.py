@@ -1,6 +1,7 @@
 import pygame, numpy as np, time
 import settings, inputs, surface, gridcell
 import ant, wall, pheromone
+import shared
 
 
 prev_time = time.time()
@@ -22,8 +23,7 @@ wall.draw(grid_cells)
 grid_cells[10: settings.c_rows-10,7:12]['food'] = 10
 
 #Initialize ants
-ants = np.zeros(settings.num_ants, dtype = ant.dtype)
-ant.initialize(ants)
+ant.initialize(shared.ants)
 
 run = True
 while (run):
@@ -43,9 +43,9 @@ while (run):
         if e.type == pygame.KEYDOWN:
             inputs.keypress(e.key)
 
-    ant.update_pos(ants, grid_cells, delta_time)
-    pheromone.update_pheromones(grid_cells, ants, delta_time)
-    ant.draw(ants, surface.ants)
+    ant.update_pos(shared.ants, grid_cells, delta_time)
+    pheromone.update_pheromones(grid_cells, shared.ants, delta_time)
+    ant.draw(shared.ants, surface.ants)
     
     surface.update_screen()
 

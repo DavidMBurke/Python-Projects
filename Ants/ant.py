@@ -8,7 +8,11 @@ dtype = np.dtype([
 ])
 
 def update_pos(ants, grid_cells, delta_time):
+
+    has_food = ants['food'] > 50
+
     rand_array = (np.random.rand(ants['direction'].shape[0]) * 2 - 1)
+    ants['direction'][has_food] = np.array([grid_cells[x,y]['p1_gradient'] for x,y in ants['index'][has_food]])
     ants['direction'] += rand_array * delta_time * 10
     x = np.cos(ants['direction']) * delta_time * settings.ant_speed
     y = np.sin(ants['direction']) * delta_time * settings.ant_speed

@@ -35,6 +35,7 @@ def update_gradient(grid_cells):
     gradient_y = sp.ndimage.convolve(p, kernel_y, mode='constant', cval = 0)
     # Find the direction in radians to highest concentration
     gradient = np.arctan2(gradient_y,gradient_x)
+    grid_cells[:,:]['p1_gradient'] = gradient
     
     if settings.debug_show_gradient_colors:
         pixels = pygame.surfarray.pixels2d(surface.gradient)
