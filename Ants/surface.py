@@ -18,11 +18,11 @@ food = pygame.Surface((settings.window), pygame.SRCALPHA)
 def update_screen():
     if settings.debug_show_grid:
         screen.blit(grid, (0,0))
-    if settings.debug_show_gradient:
+    if settings.debug_show_gradient_colors:
         screen.blit(gradient, (0,0))
     if settings.debug_show_pheromones:
         screen.blit(pheromones, (0,0))
     screen.blit(wall, (0,0))
     screen.blit(ants, (0,0))
-    if settings.debug_show_gradient:
+    if settings.debug_show_gradient_colors or settings.debug_show_gradient_arrows:
         screen.blit(gradient, (0,0))

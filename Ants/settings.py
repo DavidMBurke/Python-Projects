@@ -33,4 +33,5 @@ debug_show_pheromones = True
 debug_show_grid = False # g key
 debug_timed_run = False # For profiling
 debug_timed_run_timer = 30.0 # For profiling
-debug_show_gradient = False # v key
+debug_show_gradient_colors = False # v key
+debug_show_gradient_arrows = False # v key
