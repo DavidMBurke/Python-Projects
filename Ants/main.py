@@ -28,25 +28,36 @@ ant.initialize(shared.ants)
 run = True
 while (run):
 
+    # Calculate time between frames
     delta_time = min(settings.max_dt, time.time() - prev_time)
     prev_time = time.time()
+
+    # Clear screen
     surface.screen.fill((0,0,0))
 
+    # Run for a fixed time to time functions when profiling
     if settings.debug_timed_run:
         settings.debug_timed_run_timer -= delta_time
         if settings.debug_timed_run_timer <= 0:
             run = False
 
+    # Event handling
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
             run = False
         if e.type == pygame.KEYDOWN:
             inputs.keypress(e.key)
 
+    # Handle ant movement
     ant.update_pos(shared.ants, grid_cells, delta_time)
+
+    # Update pheromone grid and gradient
     pheromone.update_pheromones(grid_cells, shared.ants, delta_time)
+
+    # Draw ants
     ant.draw(shared.ants, surface.ants)
     
+    # Combine all layers and display
     surface.update_screen()
 
     pygame.display.update()
