@@ -1,6 +1,6 @@
 import pygame, numpy as np, time
 import settings, inputs, surface, gridcell
-import ant, wall, pheromone
+import ant, wall, pheromone, food
 import shared
 
 
@@ -20,7 +20,7 @@ wall.set(grid_cells)
 wall.draw(grid_cells)
 
 #Set food
-grid_cells[10: settings.c_rows-10,7:12]['food'] = 10
+grid_cells[10: settings.c_rows-10,25:35]['food'] = 1000
 
 #Initialize ants
 ant.initialize(shared.ants)
@@ -53,6 +53,9 @@ while (run):
 
     # Update pheromone grid and gradient
     pheromone.update_pheromones(grid_cells, shared.ants, delta_time)
+
+    # Update food grid
+    food.update_cell_food(grid_cells)
 
     # Draw ants
     ant.draw(shared.ants, surface.ants)

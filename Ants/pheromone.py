@@ -1,27 +1,26 @@
 import pygame, numpy as np, scipy as sp, math
 import ant, surface, settings, misc
 
-#Update the 'pheromone' and 'food' values of each cell TODO - move food to its own logic
-def update_cells(grid_cells):
+#Update the 'pheromone' values of each cell
+def update_cell_pheromones(grid_cells):
     # Reduce all pheromones
     grid_cells['pheromones'] = np.clip(grid_cells['pheromones'] - settings.p_decrease, 0, 255)
+    if settings.debug_show_pheromones:
     # Access pixel canvas
-    pixels = pygame.surfarray.pixels2d(surface.pheromones)
-    pixel_alphas = pygame.surfarray.pixels_alpha(surface.pheromones)
-    p = grid_cells['pheromones']
-    f = grid_cells['food']
-    # Calculate fixed int value for pheromone color
-    colors = (p[:,:,0] << 16) + (p[:,:,1] << 8) + (p[:,:,2])
-    colors[f > 0] = 16711935
-    # Expand array to canvas size
-    colors = np.repeat(colors, settings.c_size, axis = 0)
-    colors = np.repeat(colors, settings.c_size, axis = 1)
-    # Assign colors
-    pixels[:] = colors
-    pixel_alphas[colors != 0] = 100
-    # Delete canvas variables to unlock canvas
-    del pixels
-    del pixel_alphas
+        pixels = pygame.surfarray.pixels2d(surface.pheromones)
+        pixel_alphas = pygame.surfarray.pixels_alpha(surface.pheromones)
+        p = grid_cells['pheromones']
+        # Calculate fixed int value for pheromone color
+        colors = (p[:,:,0] << 16) + (p[:,:,1] << 8) + (p[:,:,2])
+        # Expand array to canvas size
+        colors = np.repeat(colors, settings.c_size, axis = 0)
+        colors = np.repeat(colors, settings.c_size, axis = 1)
+        # Assign colors
+        pixels[:] = colors
+        pixel_alphas[colors != 0] = 100
+        # Delete canvas variables to unlock canvas
+        del pixels
+        del pixel_alphas
 
 # Kernel sized to simulate ant vision from each square on grid, and show area of highest concentration
 #  x kernel:         y kernel: 
@@ -87,7 +86,7 @@ def update_pheromones(grid_cells, ants, delta_time):
     while settings.pheromone_timer <= 0:
         settings.pheromone_timer += settings.p_update_speed
         ant.drop_pheromones(ants, grid_cells)
-        update_cells(grid_cells)
+        update_cell_pheromones(grid_cells)
 
     #decrease gradient timer and if enough time has elapsed, update gradient map and reset timer
     settings.gradient_timer -= delta_time

@@ -29,7 +29,8 @@ pheromone_timer = p_update_speed # time until pheromone disappates by 1
 slotted_box = True
 
 #Debug
-debug_show_pheromones = True
+debug_show_food = True # f
+debug_show_pheromones = True # p
 debug_show_grid = False # g key
 debug_timed_run = False # For profiling
 debug_timed_run_timer = 30.0 # For profiling

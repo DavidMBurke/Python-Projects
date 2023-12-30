@@ -1,11 +1,13 @@
-import math, random, numpy as np, pygame, settings
+import math, random, numpy as np, pygame
+import settings, colors
 
 # ant datatype
 dtype = np.dtype([
     ('pos', float, (2,)),
     ('index', int, (2,)),
     ('direction', float),
-    ('food', float)
+    ('food', float),
+    ('color', int)
 ])
 
 
@@ -13,6 +15,12 @@ def update_pos(ants, grid_cells, delta_time):
 
     # Create array of random values from -1 to 1
     rand_array = (np.random.rand(ants['direction'].shape[0]) * 2 - 1)
+    # Identify ants sitting on food
+    ants_on_food = np.array([grid_cells[x,y]['food'] > 0 for x,y in ants['index']])
+    # Increase ant food and decrease cell food
+    # TODO currently flubbing this, need actually subtract food from grid and add to ants
+    ants['food'][ants_on_food] += 100
+    ants['color'][ants_on_food] = colors.green
     # Identify ants with food
     has_food = ants['food'] > 50
     # Aim ants toward pheromone 1 ('exploring' pheromone) plus a random value if they have food
@@ -42,10 +50,13 @@ def draw(ants, surface):
     pixels.fill(0)
     pixel_alphas.fill(0)
     # Place white dots and make opaque
-    for i,j in ants['pos']:
-        x, y = int(i), int(j)
-        pixels[x,y] = 16777215 # red * 2^16 + g * 2^8 + b
-        pixel_alphas[x,y] = 255
+    for index, ant in np.ndenumerate(ants):
+        x, y = int(ant['pos'][0]), int(ant['pos'][1])
+        pixels[x,y] = ant['color']
+        pixels[x+1,y] = ant['color']
+        pixels[x,y+1] = ant['color']
+        pixels[x+1,y+1] = ant['color']
+        pixel_alphas[x,y] = colors.blue
     # Delete canvas variables to release lock on canvas
     del pixels
     del pixel_alphas
@@ -62,4 +73,5 @@ def initialize(ants):
         index = (pos[0] // settings.c_size, pos[1] // settings.c_size)
         direction = (random.random() * 2 * math.pi)
         food = 0
-        ants[i] = (pos, index, direction, food)
+        color = colors.gray
+        ants[i] = (pos, index, direction, food, color)
