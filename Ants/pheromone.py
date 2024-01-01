@@ -4,7 +4,7 @@ import ant, surface, settings, misc
 #Update the 'pheromone' values of each cell
 def update_cell_pheromones(grid_cells):
     # Reduce all pheromones
-    grid_cells['pheromones'] = np.clip(grid_cells['pheromones'] - settings.p_decrease, 0, 255)
+    grid_cells['pheromones'] = np.clip(grid_cells['pheromones'] - [settings.p1_decrease, settings.p2_decrease, 0], 0, 255)
     if settings.debug_show_pheromones:
     # Access pixel canvas
         pixels = pygame.surfarray.pixels2d(surface.pheromones)
@@ -23,7 +23,7 @@ def update_cell_pheromones(grid_cells):
         del pixel_alphas
 
 # Kernel sized to simulate ant vision from each square on grid, and show area of highest concentration
-#  x kernel:         y kernel: 
+#  x kernel:         y kernel:        
 #  1, 1, 0,-1,-1     1, 1, 1, 1, 1
 #  1, 1, 0,-1,-1     1, 1, 1, 1, 1
 #  1, 1, 0,-1,-1     0, 0, 0, 0, 0
@@ -32,22 +32,30 @@ def update_cell_pheromones(grid_cells):
 
 kernel_side = 2 * settings.ant_sight + 1
 kernel_x = np.zeros((kernel_side, kernel_side))
-kernel_x[:settings.ant_sight, :] = 1
-kernel_x[1+settings.ant_sight:, :] = -1
+kernel_x[:settings.ant_sight-1, :] = 1
+kernel_x[2+settings.ant_sight:, :] = -1
 kernel_y = np.zeros((kernel_side, kernel_side))
-kernel_y[:,:settings.ant_sight] = 1
-kernel_y[:,1+settings.ant_sight:] = -1
+kernel_y[:,:settings.ant_sight-1] = 1
+kernel_y[:,2+settings.ant_sight:] = -1
 
 # Find the gradient of pheromones from each square
 # TODO Find a way to optimize or put into shaders, currently creates lag spikes at high resolutions
 def update_gradient(grid_cells):
     p1 = grid_cells['pheromones'][:,:,0] # red (explore) pheromone
-    
+    p2 = grid_cells['pheromones'][:,:,1] # green (found food) pheromone
     p1_gradient_x = sp.ndimage.convolve(p1, kernel_x, mode='constant', cval = 0)
     p1_gradient_y = sp.ndimage.convolve(p1, kernel_y, mode='constant', cval = 0)
+    p2_gradient_x = sp.ndimage.convolve(p2, kernel_x, mode='constant', cval = 0)
+    p2_gradient_y = sp.ndimage.convolve(p2, kernel_y, mode='constant', cval = 0)
     # Find the direction in radians to highest concentration in view
     p1_gradient = np.arctan2(p1_gradient_y,p1_gradient_x)
+    p2_gradient = np.arctan2(p2_gradient_y,p2_gradient_x)
+    p1_strength = p1_gradient_x + p1_gradient_y
+    p2_strength = p2_gradient_x + p2_gradient_y
     grid_cells[:,:]['p1_gradient'] = p1_gradient
+    grid_cells[:,:]['p1_strength'] = p1_strength
+    grid_cells[:,:]['p2_gradient'] = p2_gradient
+    grid_cells[:,:]['p2_strength'] = p2_strength
     
     # view of positive / negative gradient (ranging from -pi to pi)
     # Not particularly useful  visual after adding gradient arrow view but kept in case I want to expand on it later
@@ -73,7 +81,7 @@ def update_gradient(grid_cells):
     if settings.debug_show_gradient_arrows:
         # Reset surface
         surface.gradient.fill((0, 0, 0, 0))
-        for index, angle in np.ndenumerate(p1_gradient):
+        for index, angle in np.ndenumerate(p2_gradient):
             if (index[0] % 3 == 0 and index[1] % 3 == 0):
                 # Draw arrow on cell pointed toward direction of gradient
                 pos = (index[0] * settings.c_size, index[1] * settings.c_size)

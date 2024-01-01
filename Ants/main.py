@@ -20,7 +20,7 @@ wall.set(grid_cells)
 wall.draw(grid_cells)
 
 #Set food
-grid_cells[10: settings.c_rows-10,25:35]['food'] = 1000
+#grid_cells[10: settings.c_rows-10,25:35]['food'] = 1000
 
 #Initialize ants
 ant.initialize(shared.ants)

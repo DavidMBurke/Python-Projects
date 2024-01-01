@@ -2,6 +2,7 @@ import pygame, time, random, math, numpy
 
 pygame.init()
 
+num_particles = 30
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 gravity = .2
@@ -54,7 +55,7 @@ class Particle:
         p2.pos[1] += direction[1] * overlap * (p2.r / (p.r + p2.r))
 
 particles = []
-for i in range(20):
+for i in range(num_particles):
   x = random.randint(0, SCREEN_WIDTH)
   y = random.randint(0, SCREEN_HEIGHT)
   r = random.randint(2, 10)

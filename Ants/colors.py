@@ -1,5 +1,5 @@
 def rgbInt(r, g, b):
-    return r * 255 * 255 + g * 255 + b
+    return r * 256 * 256 + g * 256 + b
 
 white = rgbInt(255, 255, 255)
 magenta = rgbInt(255, 0, 255)
