@@ -50,8 +50,8 @@ def update_gradient(grid_cells):
     # Find the direction in radians to highest concentration in view
     p1_gradient = np.arctan2(p1_gradient_y,p1_gradient_x)
     p2_gradient = np.arctan2(p2_gradient_y,p2_gradient_x)
-    p1_strength = p1_gradient_x + p1_gradient_y
-    p2_strength = p2_gradient_x + p2_gradient_y
+    p1_strength = abs(p1_gradient_x) + abs(p1_gradient_y)
+    p2_strength = abs(p2_gradient_x) + abs(p2_gradient_y)
     grid_cells[:,:]['p1_gradient'] = p1_gradient
     grid_cells[:,:]['p1_strength'] = p1_strength
     grid_cells[:,:]['p2_gradient'] = p2_gradient

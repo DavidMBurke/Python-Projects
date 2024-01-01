@@ -31,7 +31,7 @@ def update_pos(ants, grid_cells, delta_time):
     # Aim ants toward pheromone 2 (food) if they do not have food
     p2_strength = np.array([grid_cells[x,y]['p2_strength'] for x,y in ants['index']])
     seeks_food = (~has_food) & (p2_strength > 0)
-    ants['direction'][seeks_food] = np.array([-grid_cells[x,y]['p2_gradient'] for x,y in ants['index'][seeks_food]])
+    ants['direction'][seeks_food] = np.array([grid_cells[x,y]['p2_gradient'] for x,y in ants['index'][seeks_food]])
     # Apply random motion to all ants
     ants['direction'] += rand_array * delta_time * 20
     # Convert direction from radians to x and y displacement
